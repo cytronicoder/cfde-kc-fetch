@@ -110,13 +110,16 @@ class TestFetchAssetsCommand:
     def test_all_options(self):
         """Test fetch-assets with all options."""
         parser = create_parser()
-        args = parser.parse_args([
-            "fetch-assets",
-            "kidney",
-            "--out", "data/kidney",
-            "--overwrite",
-            "--decompress",
-        ])
+        args = parser.parse_args(
+            [
+                "fetch-assets",
+                "kidney",
+                "--out",
+                "data/kidney",
+                "--overwrite",
+                "--decompress",
+            ]
+        )
 
         assert args.dataset_id == "kidney"
         assert args.out == "data/kidney"
@@ -130,12 +133,7 @@ class TestFetchGeneCommand:
     def test_basic_command(self):
         """Test basic fetch-gene command."""
         parser = create_parser()
-        args = parser.parse_args([
-            "fetch-gene",
-            "heart",
-            "CP",
-            "--out", "data/CP.json"
-        ])
+        args = parser.parse_args(["fetch-gene", "heart", "CP", "--out", "data/CP.json"])
 
         assert args.command == "fetch-gene"
         assert args.dataset_id == "heart"
@@ -152,12 +150,7 @@ class TestFetchGeneCommand:
 
         parser = create_parser()
         for dataset, gene, output in test_cases:
-            args = parser.parse_args([
-                "fetch-gene",
-                dataset,
-                gene,
-                "--out", output
-            ])
+            args = parser.parse_args(["fetch-gene", dataset, gene, "--out", output])
 
             assert args.dataset_id == dataset
             assert args.gene == gene

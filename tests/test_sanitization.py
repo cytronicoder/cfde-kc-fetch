@@ -33,10 +33,7 @@ class TestDatasetIDSanitization:
 
     def test_valid_mixed(self):
         """Valid dataset IDs with mixed allowed characters should pass."""
-        assert (
-            CFDEClient.sanitize_dataset_id("My_Dataset-v1.0")
-            == "My_Dataset-v1.0"
-        )
+        assert CFDEClient.sanitize_dataset_id("My_Dataset-v1.0") == "My_Dataset-v1.0"
 
     def test_invalid_path_traversal(self):
         """Dataset IDs with path traversal attempts should fail."""

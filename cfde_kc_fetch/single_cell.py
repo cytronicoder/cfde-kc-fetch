@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from .client import CFDEClient
+from .client import CFDEClient, CFDEAPIError
 
 
 def download_dataset_registry(
@@ -94,7 +94,7 @@ def download_single_cell_assets(
     downloaded = {}
 
     for asset_name, path in assets.items():
-        filename = path.split("/")[-1]
+        filename = path.rsplit("/", maxsplit=1)[-1]
         output_path = output_dir / filename
 
         try:
@@ -106,7 +106,7 @@ def download_single_cell_assets(
                 keep_gz=True,
             )
             downloaded[asset_name] = downloaded_path
-        except Exception as e:
+        except (OSError, CFDEAPIError) as e:
             print(f"[WARNING] Failed to download {asset_name}: {e}")
             # Continue downloading other assets
 

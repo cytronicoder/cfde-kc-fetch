@@ -19,8 +19,6 @@ from urllib3.util.retry import Retry
 class CFDEAPIError(Exception):
     """Exception raised when the CFDE API returns an error."""
 
-    pass
-
 
 class CFDEClient:
     """

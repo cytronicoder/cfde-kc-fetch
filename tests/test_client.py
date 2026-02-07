@@ -46,6 +46,7 @@ class TestURLBuilding:
 
         # The client uses urljoin internally
         from urllib.parse import urljoin
+
         url = urljoin(client.base_url, path)
         assert url == expected
 
@@ -60,6 +61,7 @@ class TestURLBuilding:
         )
 
         from urllib.parse import urljoin
+
         url = urljoin(client.base_url, path)
         assert url == expected
 
@@ -74,6 +76,7 @@ class TestURLBuilding:
         )
 
         from urllib.parse import urljoin
+
         url = urljoin(client.base_url, path)
         assert url == expected
 
@@ -86,6 +89,7 @@ class TestURLBuilding:
         params = {"q": f"{dataset_id},{gene}"}
 
         from urllib.parse import urljoin, urlencode
+
         base_url = urljoin(client.base_url, path)
         # URL encoding converts comma to %2C which is correct
         expected = f"{base_url}?q=heart%2CCP"
@@ -105,6 +109,7 @@ class TestURLBuilding:
 
             # Should not raise
             from urllib.parse import urljoin
+
             url = urljoin(client.base_url, path)
             assert "single_cell" in url
             assert sanitized in url
@@ -118,6 +123,7 @@ class TestURLBuilding:
         path2 = "api/raw/file/single_cell/heart/coordinates.tsv.gz"
 
         from urllib.parse import urljoin
+
         url1 = urljoin(client.base_url, path1)
         url2 = urljoin(client.base_url, path2)
 

@@ -14,13 +14,11 @@ class TestDownloadDatasetRegistry:
         """Test default output path for registry."""
         # Default should be dataset_metadata.json.gz
         # This is just a sanity check - we don't make network calls
-        pass
 
     def test_registry_url_path(self):
         """Test that the correct registry path is used."""
         # The function should use this exact path
         # Verified in the implementation
-        pass
 
 
 class TestDownloadSingleCellAssets:
@@ -30,10 +28,14 @@ class TestDownloadSingleCellAssets:
         """Test that asset paths are constructed correctly."""
         dataset_id = "heart"
 
-        expected_coordinates = f"/api/raw/file/single_cell/{dataset_id}/coordinates.tsv.gz"
+        expected_coordinates = (
+            f"/api/raw/file/single_cell/{dataset_id}/coordinates.tsv.gz"
+        )
         expected_fields = f"/api/raw/file/single_cell/{dataset_id}/fields.json.gz"
 
-        assert expected_coordinates == "/api/raw/file/single_cell/heart/coordinates.tsv.gz"
+        assert (
+            expected_coordinates == "/api/raw/file/single_cell/heart/coordinates.tsv.gz"
+        )
         assert expected_fields == "/api/raw/file/single_cell/heart/fields.json.gz"
 
     def test_multiple_dataset_paths(self):
@@ -93,7 +95,6 @@ class TestFetchSingleCellLognorm:
         """Test that the correct endpoint path is used."""
         # The function should use this exact path
         # Verified in the implementation
-        pass
 
 
 class TestAssetFilenames:

@@ -350,13 +350,12 @@ def main(argv: List[str] = None) -> int:
     # Route to appropriate command handler
     if args.command == "list-datasets":
         return cmd_list_datasets(args)
-    elif args.command == "fetch-assets":
+    if args.command == "fetch-assets":
         return cmd_fetch_assets(args)
-    elif args.command == "fetch-gene":
+    if args.command == "fetch-gene":
         return cmd_fetch_gene(args)
-    else:
-        print(f"[ERROR] Unknown command: {args.command}", file=sys.stderr)
-        return 1
+    print(f"[ERROR] Unknown command: {args.command}", file=sys.stderr)
+    return 1
 
 
 if __name__ == "__main__":
