@@ -194,50 +194,14 @@ class CFDEClient:
             # Get file size if available
             total_size = int(response.headers.get("content-length", 0))
 
-            # Stream to file
-            downloaded = 0
-            start_time = time.time()
-
-            with open(output_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=self.CHUNK_SIZE):
-                    if chunk:
-                        f.write(chunk)
-                        downloaded += len(chunk)
-
-                        # Simple progress indicator
-                        if total_size > 0:
-                            percent = (downloaded / total_size) * 100
-                            elapsed = time.time() - start_time
-                            speed = downloaded / elapsed / 1024 / 1024  # MB/s
-                            print(
-                                f"\r  Progress: {percent:.1f}% "
-                                f"({downloaded/1024/1024:.1f}/{total_size/1024/1024:.1f} MB) "
-                                f"@ {speed:.1f} MB/s",
-                                end="",
-                            )
-
-            if total_size > 0:
-                print()  # New line after progress
+            # Stream to file and show progress
+            downloaded = self._stream_response_to_file(response, output_path, total_size)
 
             print(f"[SAVED] {output_path} ({downloaded / 1024 / 1024:.2f} MB)")
 
             # Decompress if requested
             if decompress and output_path.suffix == ".gz":
-                decompressed_path = output_path.with_suffix("")
-                print(f"[DECOMPRESS] {output_path} -> {decompressed_path}")
-
-                with gzip.open(output_path, "rb") as f_in:
-                    with open(decompressed_path, "wb") as f_out:
-                        shutil.copyfileobj(f_in, f_out)
-
-                print(f"[SAVED] {decompressed_path}")
-
-                # Remove .gz if requested
-                if not keep_gz:
-                    output_path.unlink()
-                    print(f"[REMOVED] {output_path}")
-
-                return decompressed_path
+                return self._decompress_gz(output_path, keep_gz)
 
             return output_path
 
@@ -252,11 +216,68 @@ class CFDEClient:
         except requests.exceptions.RequestException as e:
             raise CFDEAPIError(f"Download failed for {url}: {str(e)}") from e
 
+    def _stream_response_to_file(self, response, output_path: Path, total_size: int) -> int:
+        """Stream response content to file and display progress. Returns bytes downloaded."""
+        downloaded = 0
+        start_time = time.time()
+
+        with open(output_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=self.CHUNK_SIZE):
+                if not chunk:
+                    continue
+
+                f.write(chunk)
+                downloaded += len(chunk)
+
+                # Progress indicator
+                if total_size > 0:
+                    percent = (downloaded / total_size) * 100
+                    elapsed = time.time() - start_time
+                    speed = downloaded / elapsed / 1024 / 1024 if elapsed > 0 else 0
+                    print(
+                        f"\r  Progress: {percent:.1f}% "
+                        f"({downloaded/1024/1024:.1f}/{total_size/1024/1024:.1f} MB) "
+                        f"@ {speed:.1f} MB/s",
+                        end="",
+                    )
+                else:
+                    elapsed = time.time() - start_time
+                    speed = downloaded / elapsed / 1024 / 1024 if elapsed > 0 else 0
+                    print(
+                        f"\r  Downloaded: {downloaded/1024/1024:.1f} MB "
+                        f"@ {speed:.1f} MB/s",
+                        end="",
+                    )
+
+        # Print newline after streaming
+        print()
+        return downloaded
+
+    def _decompress_gz(self, gz_path: Path, keep_gz: bool = True) -> Path:
+        """Decompress a .gz file and optionally remove the original gz file."""
+        decompressed_path = gz_path.with_suffix("")
+        print(f"[DECOMPRESS] {gz_path} -> {decompressed_path}")
+
+        with gzip.open(gz_path, "rb") as f_in:
+            with open(decompressed_path, "wb") as f_out:
+                shutil.copyfileobj(f_in, f_out)
+
+        print(f"[SAVED] {decompressed_path}")
+
+        if not keep_gz:
+            gz_path.unlink()
+            print(f"[REMOVED] {gz_path}")
+
+        return decompressed_path
+
     def download_gzipped_json(
         self, path: str, output_path: Path, overwrite: bool = False
     ) -> Dict[str, Any]:
         """
         Download a .json.gz file and return parsed JSON.
+
+        Auto-detects whether the file is actually gzipped by checking magic bytes,
+        so it works regardless of server compression behavior.
 
         Args:
             path: API endpoint path (relative to base_url)
@@ -269,14 +290,27 @@ class CFDEClient:
         Raises:
             CFDEAPIError: If the download or parsing fails
         """
+        gzip_magic = b"\x1f\x8b"
+
         # Download the file
         downloaded_path = self.download_file(path, output_path, overwrite=overwrite)
 
-        # Parse JSON from gzip
+        # Parse JSON, auto-detecting gzip by magic bytes
         print(f"[PARSE] {downloaded_path}")
         try:
-            with gzip.open(downloaded_path, "rt", encoding="utf-8") as f:
-                data = json.load(f)
+            # Read first 2 bytes to check for gzip magic
+            with open(downloaded_path, "rb") as f:
+                head = f.read(2)
+
+            if head == gzip_magic:
+                # File is gzipped
+                with gzip.open(downloaded_path, "rt", encoding="utf-8") as f:
+                    data = json.load(f)
+            else:
+                # File is plain JSON (requests auto-decompressed)
+                with open(downloaded_path, "rt", encoding="utf-8") as f:
+                    data = json.load(f)
+
             return data
         except Exception as e:
             raise CFDEAPIError(
