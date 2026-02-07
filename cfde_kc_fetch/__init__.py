@@ -15,6 +15,7 @@ from .single_cell import (
     download_dataset_registry,
     download_single_cell_assets,
     fetch_single_cell_lognorm,
+    normalize_dataset_record,
 )
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "download_dataset_registry",
     "download_single_cell_assets",
     "fetch_single_cell_lognorm",
+    "normalize_dataset_record",
 ]

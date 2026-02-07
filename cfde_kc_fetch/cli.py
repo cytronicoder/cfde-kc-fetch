@@ -15,6 +15,7 @@ from .single_cell import (
     download_dataset_registry,
     download_single_cell_assets,
     fetch_single_cell_lognorm,
+    normalize_dataset_record,
 )
 
 
@@ -29,6 +30,45 @@ def write_run_params(output_dir: Path, params: Dict[str, Any]) -> None:
         json.dump(params, f, indent=2)
 
     print(f"[SAVED] Run parameters: {run_params_path}")
+
+
+def _extract_datasets_from_registry(registry: Any) -> List[Dict[str, Any]]:
+    """
+    Extract dataset list from various registry formats.
+
+    Handles: lists, dicts with wrapper keys, single records.
+    """
+    if isinstance(registry, list):
+        return registry
+    if isinstance(registry, dict):
+        for wrapper_key in ["datasets", "results", "data", "items"]:
+            if wrapper_key in registry:
+                value = registry[wrapper_key]
+                if isinstance(value, (list, dict)):
+                    return value if isinstance(value, list) else [value]
+        if any(k in registry for k in ["datasetId", "dataset_id", "id"]):
+            return [registry]
+    return []
+
+
+def _format_dataset_row(dataset: Dict[str, Any], idx: int) -> tuple:
+    """
+    Format a single dataset record for display.
+
+    Returns: (dataset_id, dataset_name, is_missing_fields)
+    """
+    normalized = normalize_dataset_record(dataset)
+    dataset_id = normalized.get("dataset_id", "").strip()
+    dataset_name = normalized.get("dataset_name", "").strip()
+
+    is_missing = not dataset_id
+    if not dataset_id:
+        dataset_id = f"dataset_{idx:04d}"
+
+    if len(dataset_name) > 47:
+        dataset_name = dataset_name[:44] + "..."
+
+    return dataset_id, dataset_name, is_missing
 
 
 def cmd_list_datasets(args: argparse.Namespace) -> int:
@@ -63,12 +103,7 @@ def cmd_list_datasets(args: argparse.Namespace) -> int:
         print("Available Single-Cell Datasets")
         print("=" * 80)
 
-        if isinstance(registry, list):
-            datasets = registry
-        elif isinstance(registry, dict):
-            datasets = registry.get("datasets", [registry])
-        else:
-            datasets = []
+        datasets = _extract_datasets_from_registry(registry)
 
         if not datasets:
             print("No datasets found in registry.")
@@ -78,21 +113,23 @@ def cmd_list_datasets(args: argparse.Namespace) -> int:
         print("-" * 80)
 
         count = 0
-        for dataset in datasets:
-            if isinstance(dataset, dict):
-                dataset_id = dataset.get("id", dataset.get("dataset_id", "unknown"))
-                name = dataset.get(
-                    "name", dataset.get("title", dataset.get("description", ""))
-                )
+        missing_fields_count = 0
 
-                if len(name) > 47:
-                    name = name[:44] + "..."
+        for idx, dataset in enumerate(datasets):
+            if not isinstance(dataset, dict):
+                continue
 
-                print(f"{dataset_id:<30} {name:<50}")
-                count += 1
+            dataset_id, dataset_name, is_missing = _format_dataset_row(dataset, idx)
+            print(f"{dataset_id:<30} {dataset_name:<50}")
+            if is_missing:
+                missing_fields_count += 1
+            count += 1
 
         print("-" * 80)
         print(f"Total datasets: {count}")
+        if missing_fields_count > 0:
+            msg = f"[WARNING] {missing_fields_count} dataset(s) missing ID field(s)"
+            print(msg)
         print(f"\nRegistry saved to: {args.out}")
 
         return 0

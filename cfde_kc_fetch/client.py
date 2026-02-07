@@ -8,7 +8,7 @@ import re
 import shutil
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urljoin
 
 import requests
@@ -187,7 +187,9 @@ class CFDEClient:
             response.raise_for_status()
 
             total_size = int(response.headers.get("content-length", 0))
-            downloaded = self._stream_response_to_file(response, output_path, total_size)
+            downloaded = self._stream_response_to_file(
+                response, output_path, total_size
+            )
 
             print(f"[SAVED] {output_path} ({downloaded / 1024 / 1024:.2f} MB)")
 
@@ -207,10 +209,13 @@ class CFDEClient:
         except requests.exceptions.RequestException as e:
             raise CFDEAPIError(f"Download failed for {url}: {str(e)}") from e
 
-    def _stream_response_to_file(self, response, output_path: Path, total_size: int) -> int:
+    def _stream_response_to_file(
+        self, response, output_path: Path, total_size: int
+    ) -> int:
         """Stream response content to file and display progress. Returns bytes downloaded."""
         downloaded = 0
         start_time = time.time()
+        last_update = start_time
 
         with open(output_path, "wb") as f:
             for chunk in response.iter_content(chunk_size=self.CHUNK_SIZE):
@@ -219,23 +224,29 @@ class CFDEClient:
 
                 f.write(chunk)
                 downloaded += len(chunk)
+                now = time.time()
+                if now - last_update < 0.5 and downloaded > 0:
+                    continue
+                last_update = now
+
+                elapsed = now - start_time
+                speed = downloaded / elapsed / 1024 / 1024 if elapsed > 0 else 0
+
                 if total_size > 0:
                     percent = (downloaded / total_size) * 100
-                    elapsed = time.time() - start_time
-                    speed = downloaded / elapsed / 1024 / 1024 if elapsed > 0 else 0
                     print(
                         f"\r  Progress: {percent:.1f}% "
                         f"({downloaded/1024/1024:.1f}/{total_size/1024/1024:.1f} MB) "
                         f"@ {speed:.1f} MB/s",
                         end="",
+                        flush=True,
                     )
                 else:
-                    elapsed = time.time() - start_time
-                    speed = downloaded / elapsed / 1024 / 1024 if elapsed > 0 else 0
                     print(
                         f"\r  Downloaded: {downloaded/1024/1024:.1f} MB "
                         f"@ {speed:.1f} MB/s",
                         end="",
+                        flush=True,
                     )
 
         print()
@@ -258,58 +269,88 @@ class CFDEClient:
 
         return decompressed_path
 
-    def _parse_json_or_ndjson_file(self, f, source_path: Path):
-        """Parse a text file as JSON array or NDJSON (one JSON object per line).
+    def _unwrap_json_wrapper(self, data: Dict[str, Any]) -> Any:
+        """Unwrap common wrapper objects to get the actual data list."""
+        for wrapper_key in ["datasets", "results", "data", "items"]:
+            if wrapper_key in data:
+                wrapped_value = data[wrapper_key]
+                if isinstance(wrapped_value, (list, dict)):
+                    return wrapped_value
+        return data
 
-        Returns a single object if the file contains one JSON object, otherwise a
-        list of objects.
-        """
-        pos = f.tell()
-        first_char = ""
-        while True:
-            ch = f.read(1)
-            if not ch:
-                break
-            if not ch.isspace():
-                first_char = ch
-                break
-        f.seek(pos)
-
-        if first_char == "[":
-            return json.load(f)
-
+    def _parse_ndjson_content(self, content: str) -> List[Any]:
+        """Parse NDJSON (newline-delimited JSON) content into a list."""
         items = []
-        for i, line in enumerate(f, start=1):
+        for i, line in enumerate(content.split("\n"), start=1):
             line = line.strip()
             if not line:
                 continue
             try:
                 items.append(json.loads(line))
             except json.JSONDecodeError as err:
+                excerpt = line[:100] + "..." if len(line) > 100 else line
                 raise CFDEAPIError(
-                    f"Invalid JSON on line {i} of {source_path}: {err}"
+                    f"Invalid JSON on line {i}: {err}\nLine content: {excerpt}"
                 ) from err
-
-        if len(items) == 1:
-            return items[0]
         return items
+
+    def _parse_json_or_ndjson_file(self, f) -> Any:
+        """Parse a text file as JSON array/object or NDJSON.
+
+        Handles:
+        - JSON arrays: [{...}, {...}]
+        - JSON objects: {...}
+        - NDJSON: one JSON object per line
+        - Wrapper objects: {"datasets": [...], "results": [...], etc.}
+        - UTF-8 BOM
+
+        Returns:
+        - For JSON arrays or NDJSON with multiple lines: list of objects
+        - For single JSON object: the object itself
+        - For wrapper objects with known keys: the wrapped array/value
+        """
+        content = f.read()
+        if content.startswith("\ufeff"):
+            content = content[1:]
+
+        content = content.strip()
+        if not content:
+            return []
+
+        try:
+            data = json.loads(content)
+            if isinstance(data, dict):
+                return self._unwrap_json_wrapper(data)
+            return data
+        except json.JSONDecodeError:
+            pass
+
+        return self._parse_ndjson_content(content)
 
     def download_gzipped_json(
         self, path: str, output_path: Path, overwrite: bool = False
     ) -> Dict[str, Any]:
         """
-        Download a .json.gz file and return parsed JSON.
+        Download a JSON file (possibly gzipped) and return parsed content.
 
         Auto-detects whether the file is actually gzipped by checking magic bytes,
-        so it works regardless of server compression behavior.
+        so it works regardless of file extension or server compression behavior.
+
+        Handles:
+        - Gzipped files (detected by magic bytes 0x1f 0x8b)
+        - Plain JSON files (even if named .gz)
+        - UTF-8 BOM stripping
+        - NDJSON (newline-delimited JSON)
+        - JSON arrays and objects
+        - Wrapper objects with dataset/results/data/items keys
 
         Args:
             path: API endpoint path (relative to base_url)
-            output_path: Local path to save the .json.gz file
+            output_path: Local path to save the file
             overwrite: Whether to overwrite existing files
 
         Returns:
-            Parsed JSON content
+            Parsed JSON content (dict, list, or other JSON type)
 
         Raises:
             CFDEAPIError: If the download or parsing fails
@@ -324,10 +365,12 @@ class CFDEClient:
 
             if head == gzip_magic:
                 with gzip.open(downloaded_path, "rt", encoding="utf-8") as f:
-                    return self._parse_json_or_ndjson_file(f, downloaded_path)
+                    result = self._parse_json_or_ndjson_file(f)
+            else:
+                with open(downloaded_path, "rt", encoding="utf-8") as f:
+                    result = self._parse_json_or_ndjson_file(f)
 
-            with open(downloaded_path, "rt", encoding="utf-8") as f:
-                return self._parse_json_or_ndjson_file(f, downloaded_path)
+            return result
 
         except Exception as e:
             raise CFDEAPIError(

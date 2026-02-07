@@ -9,6 +9,54 @@ from typing import Any, Dict, Optional
 from .client import CFDEClient, CFDEAPIError
 
 
+def normalize_dataset_record(record: dict) -> dict:
+    """
+    Normalize a dataset record to ensure canonical field names.
+
+    Extracts dataset_id and dataset_name from various possible key names
+    and adds them as canonical keys. Preserves original fields.
+
+    Args:
+        record: A dataset record dictionary
+
+    Returns:
+        Dictionary with canonical 'dataset_id' and 'dataset_name' keys added
+
+    Examples:
+        >>> record = {"datasetId": "heart", "datasetName": "Heart tissue"}
+        >>> normalize_dataset_record(record)["dataset_id"]
+        'heart'
+    """
+    if not isinstance(record, dict):
+        return record
+
+    normalized = record.copy()
+    dataset_id = (
+        record.get("dataset_id")
+        or record.get("datasetId")
+        or record.get("id")
+        or record.get("datasetID")
+        or record.get("dataset")
+        or ""
+    )
+
+    dataset_name = (
+        record.get("dataset_name")
+        or record.get("datasetName")
+        or record.get("name")
+        or record.get("title")
+        or record.get("label")
+        or record.get("summary")
+        or record.get("description")
+        or ""
+    )
+
+    normalized["dataset_id"] = str(dataset_id).strip() if dataset_id else ""
+    normalized["dataset_name"] = str(dataset_name).strip() if dataset_name else ""
+
+    return normalized
+
+
 def download_dataset_registry(
     output_path: str = "dataset_metadata.json.gz",
     overwrite: bool = False,
