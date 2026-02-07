@@ -37,7 +37,7 @@ class CFDEClient:
         base_url: str = BASE_URL,
         timeout: int = DEFAULT_TIMEOUT,
         retries: int = DEFAULT_RETRIES,
-        user_agent: str = "cfde-kc-fetch/0.1.0",
+        user_agent: str = "cfde-kc-fetch/0.2.0",
     ):
         """
         Initialize the CFDE API client.
