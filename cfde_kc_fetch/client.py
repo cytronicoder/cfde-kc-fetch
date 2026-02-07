@@ -37,7 +37,7 @@ class CFDEClient:
         base_url: str = BASE_URL,
         timeout: int = DEFAULT_TIMEOUT,
         retries: int = DEFAULT_RETRIES,
-        user_agent: str = "cfde-kc-fetch/0.3.0",
+        user_agent: str = "cfde-kc-fetch/0.4.0",
     ):
         """
         Initialize the CFDE API client.
@@ -263,18 +263,42 @@ class CFDEClient:
         Some servers deliver Content-Encoding: gzip but requests transparently
         decompresses it, leaving a .gz file that is actually plain text/binary.
         This method detects gzip magic bytes and copies uncompressed content as-is.
+
+        Args:
+            gz_path: Path to the .gz file to decompress
+            keep_gz: Whether to keep the original .gz file after decompression
+
+        Returns:
+            Path to the decompressed file
+
+        Raises:
+            ValueError: If the file is empty
+            CFDEAPIError: If gzip decompression fails for a valid gzip file
         """
         decompressed_path = gz_path.with_suffix("")
         print(f"[DECOMPRESS] {gz_path} -> {decompressed_path}")
 
         gzip_magic = b"\x1f\x8b"
-        with open(gz_path, "rb") as bf:
-            head = bf.read(2)
+        try:
+            with open(gz_path, "rb") as bf:
+                head = bf.read(2)
+        except OSError as e:
+            raise CFDEAPIError(f"Failed to read {gz_path}: {str(e)}") from e
+
+        if len(head) == 0:
+            raise ValueError(f"File is empty: {gz_path}")
+
+        decompressed_path.parent.mkdir(parents=True, exist_ok=True)
 
         if head == gzip_magic:
-            with gzip.open(gz_path, "rb") as f_in:
-                with open(decompressed_path, "wb") as f_out:
-                    shutil.copyfileobj(f_in, f_out)
+            try:
+                with gzip.open(gz_path, "rb") as f_in:
+                    with open(decompressed_path, "wb") as f_out:
+                        shutil.copyfileobj(f_in, f_out)
+            except Exception as e:
+                raise CFDEAPIError(
+                    f"Gzip decompression failed for {gz_path}: {str(e)}"
+                ) from e
         else:
             shutil.copyfile(gz_path, decompressed_path)
 

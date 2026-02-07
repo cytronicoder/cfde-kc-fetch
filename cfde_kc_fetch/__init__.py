@@ -7,7 +7,7 @@ from the CFDE (Common Fund Data Ecosystem) Knowledge Center API.
 For documentation, see: https://cfde.hugeampkpnbi.org/docs
 """
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 __author__ = "Zeyu Yao"
 
 from .client import CFDEClient
