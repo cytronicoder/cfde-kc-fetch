@@ -203,7 +203,7 @@ def cmd_fetch_gene(args: argparse.Namespace) -> int:
         )
 
         print("\n" + "=" * 80)
-        print(f"Successfully queried gene expression data")
+        print("Successfully queried gene expression data")
         print(f"  Dataset: {args.dataset_id}")
         print(f"  Gene: {args.gene}")
         print(f"  Saved to: {args.out}")

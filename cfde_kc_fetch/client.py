@@ -4,7 +4,6 @@ HTTP client for CFDE Knowledge Center API with retry logic and streaming downloa
 
 import gzip
 import json
-import os
 import re
 import shutil
 import time
@@ -145,13 +144,13 @@ class CFDEClient:
             try:
                 error_data = e.response.json()
                 error_msg += f"\nDetails: {json.dumps(error_data, indent=2)[:500]}"
-            except:
+            except (ValueError, KeyError, AttributeError):
                 error_msg += f"\nResponse: {e.response.text[:500]}"
             raise CFDEAPIError(error_msg) from e
         except requests.exceptions.RequestException as e:
             raise CFDEAPIError(f"Request failed for {url}: {str(e)}") from e
 
-    def download_file(
+    def download_file(  # noqa: C901
         self,
         path: str,
         output_path: Path,
@@ -213,7 +212,9 @@ class CFDEClient:
                             elapsed = time.time() - start_time
                             speed = downloaded / elapsed / 1024 / 1024  # MB/s
                             print(
-                                f"\r  Progress: {percent:.1f}% ({downloaded/1024/1024:.1f}/{total_size/1024/1024:.1f} MB) @ {speed:.1f} MB/s",
+                                f"\r  Progress: {percent:.1f}% "
+                                f"({downloaded/1024/1024:.1f}/{total_size/1024/1024:.1f} MB) "
+                                f"@ {speed:.1f} MB/s",
                                 end="",
                             )
 
@@ -247,7 +248,7 @@ class CFDEClient:
             try:
                 error_data = e.response.json()
                 error_msg += f"\nDetails: {json.dumps(error_data, indent=2)[:500]}"
-            except:
+            except (ValueError, KeyError, AttributeError):
                 error_msg += f"\nResponse: {e.response.text[:500]}"
             raise CFDEAPIError(error_msg) from e
         except requests.exceptions.RequestException as e:

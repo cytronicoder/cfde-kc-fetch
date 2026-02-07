@@ -3,8 +3,7 @@ Unit tests for the CFDE API client.
 """
 
 import pytest
-from unittest.mock import Mock, patch
-from pathlib import Path
+
 
 from cfde_kc_fetch.client import CFDEClient, CFDEAPIError
 
@@ -44,7 +43,7 @@ class TestURLBuilding:
             "https://cfde.hugeampkpnbi.org"
             "/api/raw/file/single_cell_metadata/dataset_metadata.json.gz"
         )
-        
+
         # The client uses urljoin internally
         from urllib.parse import urljoin
         url = urljoin(client.base_url, path)
@@ -59,7 +58,7 @@ class TestURLBuilding:
             "https://cfde.hugeampkpnbi.org"
             "/api/raw/file/single_cell/heart/coordinates.tsv.gz"
         )
-        
+
         from urllib.parse import urljoin
         url = urljoin(client.base_url, path)
         assert url == expected
@@ -73,7 +72,7 @@ class TestURLBuilding:
             "https://cfde.hugeampkpnbi.org"
             "/api/raw/file/single_cell/lung/fields.json.gz"
         )
-        
+
         from urllib.parse import urljoin
         url = urljoin(client.base_url, path)
         assert url == expected
@@ -85,25 +84,25 @@ class TestURLBuilding:
         dataset_id = "heart"
         gene = "CP"
         params = {"q": f"{dataset_id},{gene}"}
-        
+
         from urllib.parse import urljoin, urlencode
         base_url = urljoin(client.base_url, path)
         # URL encoding converts comma to %2C which is correct
         expected = f"{base_url}?q=heart%2CCP"
-        
+
         url = f"{base_url}?{urlencode(params)}"
         assert url == expected
 
     def test_url_sanitization(self):
         """Test that sanitized IDs produce valid URLs."""
         client = CFDEClient()
-        
+
         # Valid dataset IDs should produce valid paths
         valid_ids = ["heart", "lung-v1", "kidney_2.0", "brain.alpha-1"]
         for dataset_id in valid_ids:
             sanitized = client.sanitize_dataset_id(dataset_id)
             path = f"/api/raw/file/single_cell/{sanitized}/coordinates.tsv.gz"
-            
+
             # Should not raise
             from urllib.parse import urljoin
             url = urljoin(client.base_url, path)
@@ -113,15 +112,15 @@ class TestURLBuilding:
     def test_url_no_double_slashes(self):
         """Test that URL construction doesn't create double slashes."""
         client = CFDEClient()
-        
+
         # Both with and without leading slash should work
         path1 = "/api/raw/file/single_cell/heart/coordinates.tsv.gz"
         path2 = "api/raw/file/single_cell/heart/coordinates.tsv.gz"
-        
+
         from urllib.parse import urljoin
         url1 = urljoin(client.base_url, path1)
         url2 = urljoin(client.base_url, path2)
-        
+
         # Both should be valid (no double slashes except in https://)
         assert "//api" not in url1
         assert "//api" not in url2
@@ -139,14 +138,14 @@ class TestErrorHandling:
     def test_invalid_dataset_id_raises(self):
         """Test that invalid dataset IDs raise ValueError."""
         client = CFDEClient()
-        
+
         with pytest.raises(ValueError):
             client.sanitize_dataset_id("../etc/passwd")
 
     def test_invalid_gene_raises(self):
         """Test that invalid gene symbols raise ValueError."""
         client = CFDEClient()
-        
+
         with pytest.raises(ValueError):
             client.sanitize_gene("gene; DROP TABLE")
 
@@ -169,7 +168,7 @@ class TestSessionConfiguration:
     def test_session_has_retry_adapter(self):
         """Test that session includes retry adapter."""
         client = CFDEClient(retries=5)
-        
+
         # Check that adapters are configured
         assert "http://" in client.session.adapters
         assert "https://" in client.session.adapters

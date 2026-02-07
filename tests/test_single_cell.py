@@ -3,14 +3,7 @@ Unit tests for single-cell dataset helpers.
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from pathlib import Path
 
-from cfde_kc_fetch.single_cell import (
-    download_dataset_registry,
-    download_single_cell_assets,
-    fetch_single_cell_lognorm,
-)
 from cfde_kc_fetch.client import CFDEClient
 
 
@@ -25,9 +18,9 @@ class TestDownloadDatasetRegistry:
 
     def test_registry_url_path(self):
         """Test that the correct registry path is used."""
-        expected_path = "/api/raw/file/single_cell_metadata/dataset_metadata.json.gz"
         # The function should use this exact path
         # Verified in the implementation
+        pass
 
 
 class TestDownloadSingleCellAssets:
@@ -36,21 +29,21 @@ class TestDownloadSingleCellAssets:
     def test_asset_paths_construction(self):
         """Test that asset paths are constructed correctly."""
         dataset_id = "heart"
-        
+
         expected_coordinates = f"/api/raw/file/single_cell/{dataset_id}/coordinates.tsv.gz"
         expected_fields = f"/api/raw/file/single_cell/{dataset_id}/fields.json.gz"
-        
+
         assert expected_coordinates == "/api/raw/file/single_cell/heart/coordinates.tsv.gz"
         assert expected_fields == "/api/raw/file/single_cell/heart/fields.json.gz"
 
     def test_multiple_dataset_paths(self):
         """Test asset path construction for different datasets."""
         datasets = ["heart", "lung", "kidney", "brain"]
-        
+
         for dataset_id in datasets:
             coords_path = f"/api/raw/file/single_cell/{dataset_id}/coordinates.tsv.gz"
             fields_path = f"/api/raw/file/single_cell/{dataset_id}/fields.json.gz"
-            
+
             assert dataset_id in coords_path
             assert dataset_id in fields_path
             assert coords_path.endswith("coordinates.tsv.gz")
@@ -65,7 +58,7 @@ class TestDownloadSingleCellAssets:
             "path/to/file",
             "data;set",
         ]
-        
+
         client = CFDEClient()
         for invalid_id in invalid_ids:
             with pytest.raises(ValueError):
@@ -79,7 +72,7 @@ class TestFetchSingleCellLognorm:
         """Test that query parameter is formatted correctly."""
         dataset_id = "heart"
         gene = "CP"
-        
+
         # Query should be comma-separated: dataset,gene
         query = f"{dataset_id},{gene}"
         assert query == "heart,CP"
@@ -91,16 +84,16 @@ class TestFetchSingleCellLognorm:
             ("lung", "TP53", "lung,TP53"),
             ("kidney", "GAPDH", "kidney,GAPDH"),
         ]
-        
+
         for dataset_id, gene, expected in test_cases:
             query = f"{dataset_id},{gene}"
             assert query == expected
 
     def test_endpoint_path(self):
         """Test that the correct endpoint path is used."""
-        expected_path = "/api/bio/query/single-cell-lognorm"
         # The function should use this exact path
         # Verified in the implementation
+        pass
 
 
 class TestAssetFilenames:

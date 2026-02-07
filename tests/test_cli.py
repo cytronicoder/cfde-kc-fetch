@@ -3,9 +3,6 @@ Unit tests for the CLI.
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from pathlib import Path
-import json
 
 from cfde_kc_fetch.cli import create_parser, main
 
@@ -22,7 +19,7 @@ class TestCLIParser:
     def test_version_flag(self):
         """Test --version flag."""
         parser = create_parser()
-        
+
         # Should not raise - just test that it's configured
         with pytest.raises(SystemExit):
             parser.parse_args(["--version"])
@@ -30,7 +27,7 @@ class TestCLIParser:
     def test_help_flag(self):
         """Test --help flag."""
         parser = create_parser()
-        
+
         with pytest.raises(SystemExit):
             parser.parse_args(["--help"])
 
@@ -54,7 +51,7 @@ class TestListDatasetsCommand:
         """Test basic list-datasets command."""
         parser = create_parser()
         args = parser.parse_args(["list-datasets"])
-        
+
         assert args.command == "list-datasets"
         assert args.out == "dataset_metadata.json.gz"  # default
         assert args.overwrite is False  # default
@@ -63,14 +60,14 @@ class TestListDatasetsCommand:
         """Test list-datasets with custom output path."""
         parser = create_parser()
         args = parser.parse_args(["list-datasets", "--out", "data/registry.json.gz"])
-        
+
         assert args.out == "data/registry.json.gz"
 
     def test_with_overwrite(self):
         """Test list-datasets with overwrite flag."""
         parser = create_parser()
         args = parser.parse_args(["list-datasets", "--overwrite"])
-        
+
         assert args.overwrite is True
 
 
@@ -81,7 +78,7 @@ class TestFetchAssetsCommand:
         """Test basic fetch-assets command."""
         parser = create_parser()
         args = parser.parse_args(["fetch-assets", "heart"])
-        
+
         assert args.command == "fetch-assets"
         assert args.dataset_id == "heart"
         assert args.out == "."  # default
@@ -92,7 +89,7 @@ class TestFetchAssetsCommand:
         """Test fetch-assets with custom output directory."""
         parser = create_parser()
         args = parser.parse_args(["fetch-assets", "lung", "--out", "data/lung"])
-        
+
         assert args.dataset_id == "lung"
         assert args.out == "data/lung"
 
@@ -100,14 +97,14 @@ class TestFetchAssetsCommand:
         """Test fetch-assets with overwrite flag."""
         parser = create_parser()
         args = parser.parse_args(["fetch-assets", "heart", "--overwrite"])
-        
+
         assert args.overwrite is True
 
     def test_with_decompress(self):
         """Test fetch-assets with decompress flag."""
         parser = create_parser()
         args = parser.parse_args(["fetch-assets", "heart", "--decompress"])
-        
+
         assert args.decompress is True
 
     def test_all_options(self):
@@ -120,7 +117,7 @@ class TestFetchAssetsCommand:
             "--overwrite",
             "--decompress",
         ])
-        
+
         assert args.dataset_id == "kidney"
         assert args.out == "data/kidney"
         assert args.overwrite is True
@@ -139,7 +136,7 @@ class TestFetchGeneCommand:
             "CP",
             "--out", "data/CP.json"
         ])
-        
+
         assert args.command == "fetch-gene"
         assert args.dataset_id == "heart"
         assert args.gene == "CP"
@@ -152,7 +149,7 @@ class TestFetchGeneCommand:
             ("lung", "GAPDH", "data/GAPDH.json"),
             ("kidney", "CD8A", "data/CD8A.json"),
         ]
-        
+
         parser = create_parser()
         for dataset, gene, output in test_cases:
             args = parser.parse_args([
@@ -161,7 +158,7 @@ class TestFetchGeneCommand:
                 gene,
                 "--out", output
             ])
-            
+
             assert args.dataset_id == dataset
             assert args.gene == gene
             assert args.out == output
@@ -169,7 +166,7 @@ class TestFetchGeneCommand:
     def test_output_required(self):
         """Test that --out is required for fetch-gene."""
         parser = create_parser()
-        
+
         # Should raise error when --out is missing
         with pytest.raises(SystemExit):
             parser.parse_args(["fetch-gene", "heart", "CP"])
@@ -188,7 +185,7 @@ class TestCommandRouting:
         """Test handling of unknown commands."""
         # Parser validation should catch this before routing
         parser = create_parser()
-        
+
         # Unknown subcommand should raise error
         with pytest.raises(SystemExit):
             parser.parse_args(["unknown-command"])
@@ -200,13 +197,13 @@ class TestGlobalOptions:
     def test_timeout_with_all_commands(self):
         """Test --timeout works with all commands."""
         parser = create_parser()
-        
+
         commands = [
             ["--timeout", "120", "list-datasets"],
             ["--timeout", "120", "fetch-assets", "heart"],
             ["--timeout", "120", "fetch-gene", "heart", "CP", "--out", "out.json"],
         ]
-        
+
         for cmd in commands:
             args = parser.parse_args(cmd)
             assert args.timeout == 120
@@ -214,13 +211,13 @@ class TestGlobalOptions:
     def test_retries_with_all_commands(self):
         """Test --retries works with all commands."""
         parser = create_parser()
-        
+
         commands = [
             ["--retries", "5", "list-datasets"],
             ["--retries", "5", "fetch-assets", "heart"],
             ["--retries", "5", "fetch-gene", "heart", "CP", "--out", "out.json"],
         ]
-        
+
         for cmd in commands:
             args = parser.parse_args(cmd)
             assert args.retries == 5
