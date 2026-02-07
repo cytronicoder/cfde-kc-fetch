@@ -12,13 +12,9 @@ class TestDownloadDatasetRegistry:
 
     def test_default_output_path(self):
         """Test default output path for registry."""
-        # Default should be dataset_metadata.json.gz
-        # This is just a sanity check - we don't make network calls
 
     def test_registry_url_path(self):
         """Test that the correct registry path is used."""
-        # The function should use this exact path
-        # Verified in the implementation
 
 
 class TestDownloadSingleCellAssets:
@@ -53,7 +49,6 @@ class TestDownloadSingleCellAssets:
 
     def test_invalid_dataset_id_raises(self):
         """Test that invalid dataset IDs are rejected."""
-        # The sanitization should happen before path construction
         invalid_ids = [
             "../etc/passwd",
             "my/../secret",
@@ -75,7 +70,6 @@ class TestFetchSingleCellLognorm:
         dataset_id = "heart"
         gene = "CP"
 
-        # Query should be comma-separated: dataset,gene
         query = f"{dataset_id},{gene}"
         assert query == "heart,CP"
 
@@ -93,8 +87,6 @@ class TestFetchSingleCellLognorm:
 
     def test_endpoint_path(self):
         """Test that the correct endpoint path is used."""
-        # The function should use this exact path
-        # Verified in the implementation
 
 
 class TestAssetFilenames:

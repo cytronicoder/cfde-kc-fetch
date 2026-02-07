@@ -44,7 +44,6 @@ class TestURLBuilding:
             "/api/raw/file/single_cell_metadata/dataset_metadata.json.gz"
         )
 
-        # The client uses urljoin internally
         from urllib.parse import urljoin
 
         url = urljoin(client.base_url, path)
@@ -91,7 +90,6 @@ class TestURLBuilding:
         from urllib.parse import urljoin, urlencode
 
         base_url = urljoin(client.base_url, path)
-        # URL encoding converts comma to %2C which is correct
         expected = f"{base_url}?q=heart%2CCP"
 
         url = f"{base_url}?{urlencode(params)}"
@@ -101,13 +99,11 @@ class TestURLBuilding:
         """Test that sanitized IDs produce valid URLs."""
         client = CFDEClient()
 
-        # Valid dataset IDs should produce valid paths
         valid_ids = ["heart", "lung-v1", "kidney_2.0", "brain.alpha-1"]
         for dataset_id in valid_ids:
             sanitized = client.sanitize_dataset_id(dataset_id)
             path = f"/api/raw/file/single_cell/{sanitized}/coordinates.tsv.gz"
 
-            # Should not raise
             from urllib.parse import urljoin
 
             url = urljoin(client.base_url, path)
@@ -118,7 +114,6 @@ class TestURLBuilding:
         """Test that URL construction doesn't create double slashes."""
         client = CFDEClient()
 
-        # Both with and without leading slash should work
         path1 = "/api/raw/file/single_cell/heart/coordinates.tsv.gz"
         path2 = "api/raw/file/single_cell/heart/coordinates.tsv.gz"
 
@@ -127,7 +122,6 @@ class TestURLBuilding:
         url1 = urljoin(client.base_url, path1)
         url2 = urljoin(client.base_url, path2)
 
-        # Both should be valid (no double slashes except in https://)
         assert "//api" not in url1
         assert "//api" not in url2
 
@@ -175,7 +169,6 @@ class TestSessionConfiguration:
         """Test that session includes retry adapter."""
         client = CFDEClient(retries=5)
 
-        # Check that adapters are configured
         assert "http://" in client.session.adapters
         assert "https://" in client.session.adapters
 
@@ -186,10 +179,9 @@ class TestChunkSize:
     def test_chunk_size_constant(self):
         """Test that chunk size is set to 8MB."""
         client = CFDEClient()
-        assert client.CHUNK_SIZE == 8 * 1024 * 1024  # 8 MB
+        assert client.CHUNK_SIZE == 8 * 1024 * 1024
 
     def test_chunk_size_is_reasonable(self):
         """Test that chunk size is in reasonable range."""
         client = CFDEClient()
-        # Should be between 1MB and 100MB
         assert 1024 * 1024 <= client.CHUNK_SIZE <= 100 * 1024 * 1024

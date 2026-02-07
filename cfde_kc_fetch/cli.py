@@ -47,7 +47,6 @@ def cmd_list_datasets(args: argparse.Namespace) -> int:
             client=client,
         )
 
-        # Write run parameters
         output_dir = Path(args.out).parent
         write_run_params(
             output_dir,
@@ -60,7 +59,6 @@ def cmd_list_datasets(args: argparse.Namespace) -> int:
             },
         )
 
-        # Display dataset table
         print("\n" + "=" * 80)
         print("Available Single-Cell Datasets")
         print("=" * 80)
@@ -68,7 +66,6 @@ def cmd_list_datasets(args: argparse.Namespace) -> int:
         if isinstance(registry, list):
             datasets = registry
         elif isinstance(registry, dict):
-            # Handle different registry structures
             datasets = registry.get("datasets", [registry])
         else:
             datasets = []
@@ -77,11 +74,9 @@ def cmd_list_datasets(args: argparse.Namespace) -> int:
             print("No datasets found in registry.")
             return 0
 
-        # Print header
         print(f"{'Dataset ID':<30} {'Name/Title':<50}")
         print("-" * 80)
 
-        # Print datasets
         count = 0
         for dataset in datasets:
             if isinstance(dataset, dict):
@@ -90,7 +85,6 @@ def cmd_list_datasets(args: argparse.Namespace) -> int:
                     "name", dataset.get("title", dataset.get("description", ""))
                 )
 
-                # Truncate long names
                 if len(name) > 47:
                     name = name[:44] + "..."
 
@@ -129,7 +123,6 @@ def cmd_fetch_assets(args: argparse.Namespace) -> int:
             client=client,
         )
 
-        # Write run parameters
         write_run_params(
             Path(args.out),
             {
@@ -184,7 +177,6 @@ def cmd_fetch_gene(args: argparse.Namespace) -> int:
             client=client,
         )
 
-        # Write run parameters
         output_dir = Path(args.out).parent
         write_run_params(
             output_dir,
@@ -208,7 +200,6 @@ def cmd_fetch_gene(args: argparse.Namespace) -> int:
         print(f"  Gene: {args.gene}")
         print(f"  Saved to: {args.out}")
 
-        # Display summary of data
         if isinstance(data, dict):
             print(f"\nResponse contains {len(data)} top-level key(s)")
             for key in list(data.keys())[:5]:
@@ -260,8 +251,6 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
-
-    # list-datasets command
     list_parser = subparsers.add_parser(
         "list-datasets",
         help="List available single-cell datasets",
@@ -277,8 +266,6 @@ def create_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Overwrite existing files",
     )
-
-    # fetch-assets command
     fetch_parser = subparsers.add_parser(
         "fetch-assets",
         help="Download single-cell dataset assets (coordinates, fields)",
@@ -304,8 +291,6 @@ def create_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Decompress .gz files (keeps .gz files by default)",
     )
-
-    # fetch-gene command
     gene_parser = subparsers.add_parser(
         "fetch-gene",
         help="Fetch log-normalized gene expression data",
@@ -346,8 +331,6 @@ def main(argv: List[str] = None) -> int:
     if not args.command:
         parser.print_help()
         return 1
-
-    # Route to appropriate command handler
     if args.command == "list-datasets":
         return cmd_list_datasets(args)
     if args.command == "fetch-assets":

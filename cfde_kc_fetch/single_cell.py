@@ -79,13 +79,11 @@ def download_single_cell_assets(
     if client is None:
         client = CFDEClient()
 
-    # Sanitize and validate dataset_id
     dataset_id = client.sanitize_dataset_id(dataset_id)
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Define assets to download
     assets = {
         "coordinates": f"/api/raw/file/single_cell/{dataset_id}/coordinates.tsv.gz",
         "fields": f"/api/raw/file/single_cell/{dataset_id}/fields.json.gz",
@@ -108,7 +106,6 @@ def download_single_cell_assets(
             downloaded[asset_name] = downloaded_path
         except (OSError, CFDEAPIError) as e:
             print(f"[WARNING] Failed to download {asset_name}: {e}")
-            # Continue downloading other assets
 
     if not downloaded:
         raise ValueError(f"Failed to download any assets for dataset '{dataset_id}'")
@@ -148,20 +145,14 @@ def fetch_single_cell_lognorm(
     if client is None:
         client = CFDEClient()
 
-    # Sanitize inputs
     dataset_id = client.sanitize_dataset_id(dataset_id)
     gene = client.sanitize_gene(gene)
 
-    # Build query parameter: comma-separated dataset,gene
     query = f"{dataset_id},{gene}"
-
-    # Query the API
     path = "/api/bio/query/single-cell-lognorm"
     params = {"q": query}
 
     data = client.get_json(path, params=params)
-
-    # Save to file if requested
     if output_path:
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)

@@ -20,7 +20,6 @@ class TestCLIParser:
         """Test --version flag."""
         parser = create_parser()
 
-        # Should not raise - just test that it's configured
         with pytest.raises(SystemExit):
             parser.parse_args(["--version"])
 
@@ -53,8 +52,8 @@ class TestListDatasetsCommand:
         args = parser.parse_args(["list-datasets"])
 
         assert args.command == "list-datasets"
-        assert args.out == "dataset_metadata.json.gz"  # default
-        assert args.overwrite is False  # default
+        assert args.out == "dataset_metadata.json.gz"
+        assert args.overwrite is False
 
     def test_with_output_path(self):
         """Test list-datasets with custom output path."""
@@ -81,9 +80,9 @@ class TestFetchAssetsCommand:
 
         assert args.command == "fetch-assets"
         assert args.dataset_id == "heart"
-        assert args.out == "."  # default
-        assert args.overwrite is False  # default
-        assert args.decompress is False  # default
+        assert args.out == "."
+        assert args.overwrite is False
+        assert args.decompress is False
 
     def test_with_output_dir(self):
         """Test fetch-assets with custom output directory."""
@@ -160,7 +159,6 @@ class TestFetchGeneCommand:
         """Test that --out is required for fetch-gene."""
         parser = create_parser()
 
-        # Should raise error when --out is missing
         with pytest.raises(SystemExit):
             parser.parse_args(["fetch-gene", "heart", "CP"])
 
@@ -170,16 +168,13 @@ class TestCommandRouting:
 
     def test_no_command_shows_help(self):
         """Test that no command shows help and returns 1."""
-        # When no command is provided, should return 1
         result = main([])
         assert result == 1
 
     def test_unknown_command(self):
         """Test handling of unknown commands."""
-        # Parser validation should catch this before routing
         parser = create_parser()
 
-        # Unknown subcommand should raise error
         with pytest.raises(SystemExit):
             parser.parse_args(["unknown-command"])
 

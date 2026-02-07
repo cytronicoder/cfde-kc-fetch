@@ -63,7 +63,7 @@ class TestDatasetIDSanitization:
             CFDEClient.sanitize_dataset_id("data$set")
 
         with pytest.raises(ValueError, match="Invalid dataset_id"):
-            CFDEClient.sanitize_dataset_id("my dataset")  # space
+            CFDEClient.sanitize_dataset_id("my dataset")
 
         with pytest.raises(ValueError, match="Invalid dataset_id"):
             CFDEClient.sanitize_dataset_id("data;set")
@@ -110,7 +110,7 @@ class TestGeneSanitization:
             CFDEClient.sanitize_gene("GENE@123")
 
         with pytest.raises(ValueError, match="Invalid gene"):
-            CFDEClient.sanitize_gene("MY GENE")  # space
+            CFDEClient.sanitize_gene("MY GENE")
 
     def test_invalid_sql_injection(self):
         """Gene symbols with SQL injection attempts should fail."""

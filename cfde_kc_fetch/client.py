@@ -30,7 +30,7 @@ class CFDEClient:
     BASE_URL = "https://cfde.hugeampkpnbi.org"
     DEFAULT_TIMEOUT = 60
     DEFAULT_RETRIES = 3
-    CHUNK_SIZE = 8 * 1024 * 1024  # 8 MB chunks for streaming
+    CHUNK_SIZE = 8 * 1024 * 1024
 
     def __init__(
         self,
@@ -57,10 +57,9 @@ class CFDEClient:
         session = requests.Session()
         session.headers.update({"User-Agent": user_agent})
 
-        # Configure retry strategy
         retry_strategy = Retry(
             total=retries,
-            backoff_factor=1,  # Exponential backoff: 1s, 2s, 4s...
+            backoff_factor=1,
             status_forcelist=[429, 500, 502, 503, 504],
             allowed_methods=["HEAD", "GET", "OPTIONS"],
         )
@@ -137,7 +136,6 @@ class CFDEClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
-            # Try to extract error details from JSON response
             error_msg = f"HTTP {e.response.status_code} for {url}"
             try:
                 error_data = e.response.json()
@@ -174,14 +172,11 @@ class CFDEClient:
             FileExistsError: If file exists and overwrite is False
         """
         output_path = Path(output_path)
-
-        # Check if file exists
         if output_path.exists() and not overwrite:
             raise FileExistsError(
                 f"File already exists: {output_path}. Use overwrite=True to replace."
             )
 
-        # Create output directory
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         url = urljoin(self.base_url, path)
@@ -191,15 +186,11 @@ class CFDEClient:
             response = self.session.get(url, stream=True, timeout=self.timeout)
             response.raise_for_status()
 
-            # Get file size if available
             total_size = int(response.headers.get("content-length", 0))
-
-            # Stream to file and show progress
             downloaded = self._stream_response_to_file(response, output_path, total_size)
 
             print(f"[SAVED] {output_path} ({downloaded / 1024 / 1024:.2f} MB)")
 
-            # Decompress if requested
             if decompress and output_path.suffix == ".gz":
                 return self._decompress_gz(output_path, keep_gz)
 
@@ -228,8 +219,6 @@ class CFDEClient:
 
                 f.write(chunk)
                 downloaded += len(chunk)
-
-                # Progress indicator
                 if total_size > 0:
                     percent = (downloaded / total_size) * 100
                     elapsed = time.time() - start_time
@@ -249,7 +238,6 @@ class CFDEClient:
                         end="",
                     )
 
-        # Print newline after streaming
         print()
         return downloaded
 
@@ -291,23 +279,17 @@ class CFDEClient:
             CFDEAPIError: If the download or parsing fails
         """
         gzip_magic = b"\x1f\x8b"
-
-        # Download the file
         downloaded_path = self.download_file(path, output_path, overwrite=overwrite)
 
-        # Parse JSON, auto-detecting gzip by magic bytes
         print(f"[PARSE] {downloaded_path}")
         try:
-            # Read first 2 bytes to check for gzip magic
             with open(downloaded_path, "rb") as f:
                 head = f.read(2)
 
             if head == gzip_magic:
-                # File is gzipped
                 with gzip.open(downloaded_path, "rt", encoding="utf-8") as f:
                     data = json.load(f)
             else:
-                # File is plain JSON (requests auto-decompressed)
                 with open(downloaded_path, "rt", encoding="utf-8") as f:
                     data = json.load(f)
 
