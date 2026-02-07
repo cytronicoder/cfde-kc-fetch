@@ -192,8 +192,9 @@ class TestDownloadFileWithDecompression:
             def raise_for_status(self):
                 """No-op status check."""
 
-            def iter_content(self, _chunk_size=None):
+            def iter_content(self, chunk_size=None):
                 """Yield a single byte chunk for testing streaming."""
+                del chunk_size
                 yield b"test content"
 
         def mock_get(*_args, **_kwargs):
@@ -232,8 +233,10 @@ class TestDownloadFileWithDecompression:
             def raise_for_status(self):
                 """No-op status check."""
 
-            def iter_content(self, _chunk_size=None):
+            def iter_content(self, chunk_size=None):
                 """Yield a single byte chunk for testing streaming."""
+                # Accept chunk_size for compatibility with requests and mark it used
+                del chunk_size
                 yield b"test content"
 
         def mock_get(*_args, **_kwargs):
