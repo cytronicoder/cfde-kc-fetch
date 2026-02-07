@@ -48,6 +48,11 @@ where = ["."]
 include = ["cfde_kc_fetch*"]
 exclude = ["tests*", "outputs*", "paper_versions*"]
 
+[tool.flake8]
+exclude = ".git,__pycache__,.venv,venv,build,dist,*.egg-info,.pytest_cache,cfde_kc_fetch.egg-info,data,outputs"
+max-line-length = 127
+max-complexity = 10
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
