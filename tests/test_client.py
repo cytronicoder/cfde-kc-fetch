@@ -194,7 +194,7 @@ def test_download_gzipped_json_parses_ndjson_plain(tmp_path):
     p.write_text(content, encoding="utf-8")
 
     client = CFDEClient()
-    client.download_file = lambda path, output_path, overwrite=False: p
+    client.download_file = lambda path, output_path, overwrite=False, **_kwargs: p
 
     data = client.download_gzipped_json("/fake", p, overwrite=True)
     assert isinstance(data, list)
@@ -212,7 +212,7 @@ def test_download_gzipped_json_parses_ndjson_gz(tmp_path):
         f.write(content.encode("utf-8"))
 
     client = CFDEClient()
-    client.download_file = lambda path, output_path, overwrite=False: p
+    client.download_file = lambda path, output_path, overwrite=False, **_kwargs: p
 
     data = client.download_gzipped_json("/fake", p, overwrite=True)
     assert isinstance(data, list)
@@ -227,7 +227,7 @@ def test_download_gzipped_json_parses_json_array(tmp_path):
     p.write_text(content, encoding="utf-8")
 
     client = CFDEClient()
-    client.download_file = lambda path, output_path, overwrite=False: p
+    client.download_file = lambda path, output_path, overwrite=False, **_kwargs: p
 
     data = client.download_gzipped_json("/fake", p, overwrite=True)
     assert isinstance(data, list)

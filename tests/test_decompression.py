@@ -6,13 +6,12 @@ Tests cover both real gzipped files and "fake gz" files (plain content with .gz 
 
 import gzip
 import pytest
-from pathlib import Path
 
 from cfde_kc_fetch.client import CFDEClient, CFDEAPIError
 
 
 class TestDecompression:
-    """Test _decompress_gz method with various file types."""
+    """Test decompress_gz method with various file types."""
 
     def test_decompress_real_gzip(self, tmp_path):
         """Test decompression of a real gzipped file."""
@@ -23,7 +22,7 @@ class TestDecompression:
         with gzip.open(gz_file, "wb") as f:
             f.write(original_content)
 
-        decompressed = client._decompress_gz(gz_file, keep_gz=True)
+        decompressed = client.decompress_gz(gz_file, keep_gz=True)
 
         assert decompressed == tmp_path / "test.txt"
         assert decompressed.exists()
@@ -43,7 +42,7 @@ class TestDecompression:
         with open(gz_file, "wb") as f:
             f.write(original_content)
 
-        decompressed = client._decompress_gz(gz_file, keep_gz=True)
+        decompressed = client.decompress_gz(gz_file, keep_gz=True)
 
         assert decompressed == tmp_path / "coordinates.tsv"
         assert decompressed.exists()
@@ -62,7 +61,7 @@ class TestDecompression:
         with open(gz_file, "wb") as f:
             f.write(original_content)
 
-        decompressed = client._decompress_gz(gz_file, keep_gz=True)
+        decompressed = client.decompress_gz(gz_file, keep_gz=True)
         assert decompressed == tmp_path / "fields.json"
         assert decompressed.exists()
 
@@ -78,7 +77,7 @@ class TestDecompression:
         gz_file.touch()
 
         with pytest.raises(ValueError, match="File is empty"):
-            client._decompress_gz(gz_file)
+            client.decompress_gz(gz_file)
 
     def test_decompress_remove_original(self, tmp_path):
         """Test that keep_gz=False removes the original file."""
@@ -89,7 +88,7 @@ class TestDecompression:
         with gzip.open(gz_file, "wb") as f:
             f.write(original_content)
 
-        decompressed = client._decompress_gz(gz_file, keep_gz=False)
+        decompressed = client.decompress_gz(gz_file, keep_gz=False)
 
         assert decompressed.exists()
         assert not gz_file.exists()
@@ -110,7 +109,7 @@ class TestDecompression:
             f.write(b"not valid gzip data")
 
         with pytest.raises(CFDEAPIError, match="Gzip decompression failed"):
-            client._decompress_gz(gz_file)
+            client.decompress_gz(gz_file)
 
     def test_decompress_preserves_directory_structure(self, tmp_path):
         """Test that decompression works with nested directories."""
@@ -124,7 +123,7 @@ class TestDecompression:
         with gzip.open(gz_file, "wb") as f:
             f.write(original_content)
 
-        decompressed = client._decompress_gz(gz_file)
+        decompressed = client.decompress_gz(gz_file)
 
         assert decompressed == subdir / "test.json"
         assert decompressed.exists()
@@ -143,7 +142,7 @@ class TestDecompression:
         with gzip.open(gz_file, "wb") as f:
             f.write(original_content)
 
-        decompressed = client._decompress_gz(gz_file)
+        decompressed = client.decompress_gz(gz_file)
 
         with open(decompressed, "rb") as f:
             content = f.read()
@@ -159,7 +158,7 @@ class TestDecompression:
         with gzip.open(gz_file, "wb") as f:
             f.write(original_content)
 
-        decompressed = client._decompress_gz(gz_file)
+        decompressed = client.decompress_gz(gz_file)
 
         with open(decompressed, "rb") as f:
             content = f.read()
@@ -172,28 +171,33 @@ class TestDownloadFileWithDecompression:
     """Test the download_file method with decompress option."""
 
     def test_download_calls_decompress_for_gz_files(self, tmp_path, monkeypatch):
-        """Test that download_file calls _decompress_gz when decompress=True."""
+        """Test that download_file calls decompress_gz when decompress=True."""
         client = CFDEClient()
         decompress_called = []
-        original_decompress = client._decompress_gz
+        original_decompress = client.decompress_gz
 
         def mock_decompress(gz_path, keep_gz=True):
+            """Mock decompress that records calls and delegates to original."""
             decompress_called.append((gz_path, keep_gz))
             return original_decompress(gz_path, keep_gz)
 
-        monkeypatch.setattr(client, "_decompress_gz", mock_decompress)
+        monkeypatch.setattr(client, "decompress_gz", mock_decompress)
 
         class MockResponse:
+            """Simple mock for requests response providing byte chunks."""
+
             status_code = 200
             headers = {"content-length": "100"}
 
             def raise_for_status(self):
-                pass
+                """No-op status check."""
 
-            def iter_content(self, chunk_size=None):
+            def iter_content(self, _chunk_size=None):
+                """Yield a single byte chunk for testing streaming."""
                 yield b"test content"
 
-        def mock_get(*args, **kwargs):
+        def mock_get(*_args, **_kwargs):
+            """Return a MockResponse instance for requests.get replacement."""
             return MockResponse()
 
         monkeypatch.setattr(client.session, "get", mock_get)
@@ -204,7 +208,7 @@ class TestDownloadFileWithDecompression:
 
         assert len(decompress_called) == 1
         assert decompress_called[0][0] == output_path
-        assert decompress_called[0][1] == True
+        assert decompress_called[0][1]
         assert result == tmp_path / "test.txt"
 
     def test_download_skips_decompress_for_non_gz(self, tmp_path, monkeypatch):
@@ -212,23 +216,28 @@ class TestDownloadFileWithDecompression:
         client = CFDEClient()
         decompress_called = []
 
-        def mock_decompress(gz_path, keep_gz=True):
+        def mock_decompress(gz_path, _keep_gz=True):
+            """Mock decompress for non-.gz path that records calls."""
             decompress_called.append(True)
             return gz_path.with_suffix("")
 
-        monkeypatch.setattr(client, "_decompress_gz", mock_decompress)
+        monkeypatch.setattr(client, "decompress_gz", mock_decompress)
 
         class MockResponse:
+            """Simple mock for requests response providing byte chunks."""
+
             status_code = 200
             headers = {"content-length": "100"}
 
             def raise_for_status(self):
-                pass
+                """No-op status check."""
 
-            def iter_content(self, chunk_size=None):
+            def iter_content(self, _chunk_size=None):
+                """Yield a single byte chunk for testing streaming."""
                 yield b"test content"
 
-        def mock_get(*args, **kwargs):
+        def mock_get(*_args, **_kwargs):
+            """Return a MockResponse instance for requests.get replacement."""
             return MockResponse()
 
         monkeypatch.setattr(client.session, "get", mock_get)

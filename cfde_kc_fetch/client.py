@@ -199,7 +199,7 @@ class CFDEClient:
             print(f"[SAVED] {output_path} ({downloaded / 1024 / 1024:.2f} MB)")
 
             if decompress and output_path.suffix == ".gz":
-                return self._decompress_gz(output_path, keep_gz)
+                return self.decompress_gz(output_path, keep_gz)
 
             return output_path
 
@@ -309,6 +309,15 @@ class CFDEClient:
             print(f"[REMOVED] {gz_path}")
 
         return decompressed_path
+
+    def decompress_gz(self, gz_path: Path, keep_gz: bool = True) -> Path:
+        """Public wrapper for gz decompression.
+
+        This is a thin wrapper around the internal ``_decompress_gz`` method so
+        tests and consumers can use a public API without accessing a protected
+        member directly.
+        """
+        return self._decompress_gz(gz_path, keep_gz)
 
     def _unwrap_json_wrapper(self, data: Dict[str, Any]) -> Any:
         """Unwrap common wrapper objects to get the actual data list."""
