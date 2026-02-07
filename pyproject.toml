@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cfde-kc-fetch"
+version = "0.1.0"
+description = "Dataset fetcher for the CFDE Knowledge Center API"
+readme = "README.md"
+authors = [
+    {name = "Zeyu Yao"}
+]
+license = {text = "MIT"}
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+    "requests>=2.25.0",
+    "urllib3>=1.26.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/cytronicoder/cfde-kc-fetch"
+Documentation = "https://cfde.hugeampkpnbi.org/docs"
+Repository = "https://github.com/cytronicoder/cfde-kc-fetch"
+
+[project.scripts]
+cfde-kc-fetch = "cfde_kc_fetch.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["cfde_kc_fetch*"]
+exclude = ["tests*", "outputs*", "paper_versions*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --strict-markers"
