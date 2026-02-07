@@ -258,6 +258,42 @@ class CFDEClient:
 
         return decompressed_path
 
+    def _parse_json_or_ndjson_file(self, f, source_path: Path):
+        """Parse a text file as JSON array or NDJSON (one JSON object per line).
+
+        Returns a single object if the file contains one JSON object, otherwise a
+        list of objects.
+        """
+        pos = f.tell()
+        first_char = ""
+        while True:
+            ch = f.read(1)
+            if not ch:
+                break
+            if not ch.isspace():
+                first_char = ch
+                break
+        f.seek(pos)
+
+        if first_char == "[":
+            return json.load(f)
+
+        items = []
+        for i, line in enumerate(f, start=1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                items.append(json.loads(line))
+            except json.JSONDecodeError as err:
+                raise CFDEAPIError(
+                    f"Invalid JSON on line {i} of {source_path}: {err}"
+                ) from err
+
+        if len(items) == 1:
+            return items[0]
+        return items
+
     def download_gzipped_json(
         self, path: str, output_path: Path, overwrite: bool = False
     ) -> Dict[str, Any]:
@@ -283,17 +319,16 @@ class CFDEClient:
 
         print(f"[PARSE] {downloaded_path}")
         try:
-            with open(downloaded_path, "rb") as f:
-                head = f.read(2)
+            with open(downloaded_path, "rb") as bf:
+                head = bf.read(2)
 
             if head == gzip_magic:
                 with gzip.open(downloaded_path, "rt", encoding="utf-8") as f:
-                    data = json.load(f)
-            else:
-                with open(downloaded_path, "rt", encoding="utf-8") as f:
-                    data = json.load(f)
+                    return self._parse_json_or_ndjson_file(f, downloaded_path)
 
-            return data
+            with open(downloaded_path, "rt", encoding="utf-8") as f:
+                return self._parse_json_or_ndjson_file(f, downloaded_path)
+
         except Exception as e:
             raise CFDEAPIError(
                 f"Failed to parse JSON from {downloaded_path}: {str(e)}"

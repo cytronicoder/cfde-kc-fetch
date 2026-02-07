@@ -185,3 +185,51 @@ class TestChunkSize:
         """Test that chunk size is in reasonable range."""
         client = CFDEClient()
         assert 1024 * 1024 <= client.CHUNK_SIZE <= 100 * 1024 * 1024
+
+
+def test_download_gzipped_json_parses_ndjson_plain(tmp_path):
+    """NDJSON (plain text) should be parsed as a list of objects."""
+    content = '{"a": 1}\n{"b": 2}\n'
+    p = tmp_path / "registry.json.gz"
+    p.write_text(content, encoding="utf-8")
+
+    client = CFDEClient()
+    client.download_file = lambda path, output_path, overwrite=False: p
+
+    data = client.download_gzipped_json("/fake", p, overwrite=True)
+    assert isinstance(data, list)
+    assert data[0]["a"] == 1
+    assert data[1]["b"] == 2
+
+
+def test_download_gzipped_json_parses_ndjson_gz(tmp_path):
+    """NDJSON gzipped should be parsed as a list of objects."""
+    content = '{"x": 10}\n{"y": 20}\n'
+    p = tmp_path / "registry.json.gz"
+    import gzip
+
+    with gzip.open(p, "wb") as f:
+        f.write(content.encode("utf-8"))
+
+    client = CFDEClient()
+    client.download_file = lambda path, output_path, overwrite=False: p
+
+    data = client.download_gzipped_json("/fake", p, overwrite=True)
+    assert isinstance(data, list)
+    assert data[0]["x"] == 10
+    assert data[1]["y"] == 20
+
+
+def test_download_gzipped_json_parses_json_array(tmp_path):
+    """A JSON array should be parsed as a list."""
+    content = '[{"a":1},{"b":2}]'
+    p = tmp_path / "registry.json.gz"
+    p.write_text(content, encoding="utf-8")
+
+    client = CFDEClient()
+    client.download_file = lambda path, output_path, overwrite=False: p
+
+    data = client.download_gzipped_json("/fake", p, overwrite=True)
+    assert isinstance(data, list)
+    assert data[0]["a"] == 1
+    assert data[1]["b"] == 2
