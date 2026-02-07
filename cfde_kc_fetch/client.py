@@ -186,7 +186,12 @@ class CFDEClient:
             response = self.session.get(url, stream=True, timeout=self.timeout)
             response.raise_for_status()
 
-            total_size = int(response.headers.get("content-length", 0))
+            content_encoding = (response.headers.get("content-encoding") or "").lower()
+            if content_encoding and content_encoding != "identity":
+                total_size = 0
+            else:
+                total_size = int(response.headers.get("content-length", 0) or 0)
+
             downloaded = self._stream_response_to_file(
                 response, output_path, total_size
             )
@@ -253,13 +258,25 @@ class CFDEClient:
         return downloaded
 
     def _decompress_gz(self, gz_path: Path, keep_gz: bool = True) -> Path:
-        """Decompress a .gz file and optionally remove the original gz file."""
+        """Decompress a .gz file, but tolerate 'fake .gz' files (already decompressed).
+
+        Some servers deliver Content-Encoding: gzip but requests transparently
+        decompresses it, leaving a .gz file that is actually plain text/binary.
+        This method detects gzip magic bytes and copies uncompressed content as-is.
+        """
         decompressed_path = gz_path.with_suffix("")
         print(f"[DECOMPRESS] {gz_path} -> {decompressed_path}")
 
-        with gzip.open(gz_path, "rb") as f_in:
-            with open(decompressed_path, "wb") as f_out:
-                shutil.copyfileobj(f_in, f_out)
+        gzip_magic = b"\x1f\x8b"
+        with open(gz_path, "rb") as bf:
+            head = bf.read(2)
+
+        if head == gzip_magic:
+            with gzip.open(gz_path, "rb") as f_in:
+                with open(decompressed_path, "wb") as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+        else:
+            shutil.copyfile(gz_path, decompressed_path)
 
         print(f"[SAVED] {decompressed_path}")
 
