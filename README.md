@@ -10,6 +10,12 @@ Quick links:
 - Short examples: `docs/examples.md`
 - API docs (Swagger UI): <https://cfde.hugeampkpnbi.org/docs>
 
+Install from PyPI:
+
+```bash
+pip install cfde-kc-fetch
+```
+
 If you spot missing information or a confusing message in the tool, please open an issue with a minimal reproduction and the command you ran.
 
 ## Development & Testing
